@@ -5,7 +5,7 @@
 package terminal
 
 import (
-  "fmt"
+	//	"fmt"
 	"io"
 	"os"
 	"sync"
@@ -28,7 +28,7 @@ func min(i, j int) int {
 // historyIdxValue returns an index into a valid range of history
 func historyIdxValue(idx int, history [][]byte) int {
 	out := idx
-	out = min(len(history)-1, out)
+	out = min(len(history), out)
 	out = max(0, out)
 	return out
 }
@@ -365,12 +365,19 @@ func (t *Terminal) handleKey(key int) (line string, ok bool) {
 		if len(t.history) == 0 {
 			return
 		}
+		newPos := 0
+		newLine := []byte{}
 		t.historyIdx++
-		t.historyIdx = historyIdxValue(t.historyIdx, t.history)
-		h := t.history[t.historyIdx]
-		newLine := make([]byte, len(h))
-		copy(newLine, h)
-		newPos := len(newLine)
+		if t.historyIdx >= len(t.history) {
+			t.historyIdx = len(t.history)
+		} else {
+			t.historyIdx = historyIdxValue(t.historyIdx, t.history)
+			h := t.history[t.historyIdx]
+			newLine = make([]byte, len(h))
+			copy(newLine, h)
+			newPos = len(newLine)
+			//			fmt.Println("in")
+		}
 		if t.echo {
 			t.moveCursorToPos(0)
 			t.writeLine(newLine)
@@ -564,13 +571,12 @@ func (t *Terminal) readLine() (line string, err error) {
 		t.c.Write(t.outBuf)
 		t.outBuf = t.outBuf[:0]
 		if lineOk {
-			if t.echo {
+			if t.echo { //&& len(line) > 0 {
 				// don't put passwords into history...
 				b := []byte(line)
 				h := make([]byte, len(b))
 				copy(h, b)
 				t.history = append(t.history, h)
-				fmt.Println("adding to history:", line)
 			}
 			return
 		}
@@ -637,14 +643,14 @@ func (sh *shell) Write(data []byte) (n int, err error) {
 	return sh.w.Write(data)
 }
 
-var oldState *terminal.State
+var oldState *State
 
-func ReleaseFromStdInOut() {
+func (t *Terminal) ReleaseFromStdInOut() { // doesn't really need a receiver, but maybe oldState can be part of term one day
 	fd := int(os.Stdin.Fd())
 	Restore(fd, oldState)
 }
 
-func NewTerminalWithStdInOut() (term *Terminal, err error) {
+func NewWithStdInOut() (term *Terminal, err error) {
 	fd := int(os.Stdin.Fd())
 	oldState, err = MakeRaw(fd)
 	if err != nil {
