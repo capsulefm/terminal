@@ -18,7 +18,7 @@ This repo fixed/adds:
 **Usage:**
 
 ```go 
-term := termina.NewWithStdInOut()  
+term := terminal.NewWithStdInOut()  
 term.ReleaseFromStdInOut() // defer this  
 term.SetPrompt(prompt string)  
 term.ReadLine() (line string, err error)  
